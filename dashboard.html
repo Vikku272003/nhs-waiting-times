@@ -1,0 +1,474 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>NHS RTT Waiting Times Dashboard</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.0/chart.umd.min.js"></script>
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@300;400;500;600;700&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --nhs: #005EB8;
+    --nhs-dark: #003d7a;
+    --green: #007F3B;
+    --red: #D32F2F;
+    --orange: #E65100;
+    --bg: #f5f7fa;
+    --card: #ffffff;
+    --border: #e2e8f0;
+    --text: #1a202c;
+    --muted: #64748b;
+  }
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body { font-family: 'DM Sans', sans-serif; background: var(--bg); color: var(--text); }
+
+  /* HEADER */
+  header {
+    background: linear-gradient(135deg, var(--nhs) 0%, var(--nhs-dark) 100%);
+    color: white; padding: 28px 40px;
+    display: flex; align-items: center; gap: 20px;
+    box-shadow: 0 4px 20px rgba(0,94,184,0.3);
+  }
+  .nhs-badge {
+    background: white; color: var(--nhs);
+    font-size: 1.4rem; font-weight: 800;
+    padding: 8px 14px; border-radius: 6px;
+    letter-spacing: -0.5px; flex-shrink: 0;
+  }
+  header h1 { font-size: 1.4rem; font-weight: 600; letter-spacing: -0.3px; }
+  header p { font-size: 0.82rem; opacity: 0.75; margin-top: 3px; font-weight: 300; }
+
+  /* KPIs */
+  .kpi-row {
+    display: grid; grid-template-columns: repeat(4, 1fr);
+    gap: 16px; padding: 24px 40px 0;
+  }
+  .kpi {
+    background: var(--card); border-radius: 12px; padding: 22px 24px;
+    border-top: 4px solid var(--nhs);
+    box-shadow: 0 1px 6px rgba(0,0,0,0.06);
+    transition: transform 0.2s;
+  }
+  .kpi:hover { transform: translateY(-2px); }
+  .kpi.red { border-top-color: var(--red); }
+  .kpi.green { border-top-color: var(--green); }
+  .kpi.orange { border-top-color: var(--orange); }
+  .kpi-value { font-size: 2rem; font-weight: 700; font-family: 'DM Mono', monospace; color: var(--nhs); line-height: 1; }
+  .kpi.red .kpi-value { color: var(--red); }
+  .kpi.green .kpi-value { color: var(--green); }
+  .kpi.orange .kpi-value { color: var(--orange); }
+  .kpi-label { font-size: 0.82rem; font-weight: 500; color: var(--text); margin-top: 8px; }
+  .kpi-sub { font-size: 0.73rem; color: var(--muted); margin-top: 3px; }
+
+  /* FILTERS */
+  .filter-bar {
+    margin: 20px 40px 0;
+    background: var(--card); border-radius: 12px;
+    padding: 16px 24px; display: flex; align-items: center; gap: 24px;
+    box-shadow: 0 1px 6px rgba(0,0,0,0.06);
+    border: 1px solid var(--border);
+  }
+  .filter-bar span { font-size: 0.8rem; font-weight: 600; color: var(--muted); text-transform: uppercase; letter-spacing: 0.5px; }
+  .filter-group { display: flex; align-items: center; gap: 10px; }
+  .filter-group label { font-size: 0.85rem; font-weight: 500; color: var(--text); }
+  .filter-group select {
+    padding: 7px 14px; border: 1.5px solid var(--border); border-radius: 8px;
+    font-size: 0.85rem; font-family: 'DM Sans', sans-serif;
+    color: var(--text); background: var(--bg); cursor: pointer;
+    transition: border-color 0.2s;
+  }
+  .filter-group select:focus { outline: none; border-color: var(--nhs); }
+  .reset-btn {
+    margin-left: auto; padding: 7px 16px;
+    background: var(--nhs); color: white; border: none;
+    border-radius: 8px; font-size: 0.82rem; font-family: 'DM Sans', sans-serif;
+    font-weight: 500; cursor: pointer; transition: background 0.2s;
+  }
+  .reset-btn:hover { background: var(--nhs-dark); }
+
+  /* CHARTS */
+  .charts-grid {
+    display: grid; grid-template-columns: 1fr 1fr;
+    gap: 18px; padding: 20px 40px 30px;
+  }
+  .card {
+    background: var(--card); border-radius: 12px; padding: 24px;
+    box-shadow: 0 1px 6px rgba(0,0,0,0.06);
+    border: 1px solid var(--border);
+  }
+  .card.full { grid-column: 1 / -1; }
+  .card h3 {
+    font-size: 0.9rem; font-weight: 600; color: var(--text);
+    margin-bottom: 18px; display: flex; align-items: center; gap: 8px;
+  }
+  .card h3 .dot {
+    width: 8px; height: 8px; border-radius: 50%; background: var(--nhs); flex-shrink: 0;
+  }
+  .card h3 .dot.red { background: var(--red); }
+  .card h3 .dot.green { background: var(--green); }
+  .card h3 .dot.orange { background: var(--orange); }
+
+  /* INSIGHT BOX */
+  .insight {
+    margin-top: 14px; padding: 10px 14px;
+    background: #f0f7ff; border-left: 3px solid var(--nhs);
+    border-radius: 0 6px 6px 0; font-size: 0.78rem; color: var(--muted);
+  }
+  .insight.red { background: #fff5f5; border-left-color: var(--red); }
+  .insight strong { color: var(--text); }
+
+  footer {
+    text-align: center; padding: 20px;
+    font-size: 0.75rem; color: var(--muted); border-top: 1px solid var(--border);
+  }
+</style>
+</head>
+<body>
+
+<header>
+  <div class="nhs-badge">NHS</div>
+  <div>
+    <h1>Referral to Treatment (RTT) Waiting Times Dashboard</h1>
+    <p>Interactive analysis · 10 specialties · 7 regions · April 2020 – December 2024 · Built by Vikasitha Malligarjunan</p>
+  </div>
+</header>
+
+<!-- KPIs -->
+<div class="kpi-row">
+  <div class="kpi red">
+    <div class="kpi-value" id="kpi-pct">73.1%</div>
+    <div class="kpi-label">Avg % Within 18 Weeks</div>
+    <div class="kpi-sub">NHS Target: 92% — Gap: 18.9pp</div>
+  </div>
+  <div class="kpi orange">
+    <div class="kpi-value" id="kpi-wait">19.6 wks</div>
+    <div class="kpi-label">Average Median Wait</div>
+    <div class="kpi-sub">Up from ~12 wks pre-COVID</div>
+  </div>
+  <div class="kpi red">
+    <div class="kpi-value">54,181</div>
+    <div class="kpi-label">Peak 52+ Week Waiters</div>
+    <div class="kpi-sub">At COVID impact peak 2021</div>
+  </div>
+  <div class="kpi green">
+    <div class="kpi-value">3,990</div>
+    <div class="kpi-label">Records Analysed</div>
+    <div class="kpi-sub">10 specialties · 7 regions</div>
+  </div>
+</div>
+
+<!-- Filters -->
+<div class="filter-bar">
+  <span>🔍 Filter</span>
+  <div class="filter-group">
+    <label>Specialty</label>
+    <select id="specFilter" onchange="update()">
+      <option value="all">All Specialties</option>
+      <option>Orthopaedics</option>
+      <option>Cardiology</option>
+      <option>Neurology</option>
+      <option>Ophthalmology</option>
+      <option>General Surgery</option>
+      <option>Urology</option>
+      <option>Gynaecology</option>
+      <option>ENT</option>
+      <option>Gastroenterology</option>
+      <option>Dermatology</option>
+    </select>
+  </div>
+  <div class="filter-group">
+    <label>Region</label>
+    <select id="regFilter" onchange="update()">
+      <option value="all">All Regions</option>
+      <option>London</option>
+      <option>Midlands</option>
+      <option>North West</option>
+      <option>North East</option>
+      <option>South East</option>
+      <option>South West</option>
+      <option>East of England</option>
+    </select>
+  </div>
+  <button class="reset-btn" onclick="reset()">Reset Filters</button>
+</div>
+
+<!-- Charts -->
+<div class="charts-grid">
+
+  <div class="card full">
+    <h3><span class="dot"></span>Total Patients Waiting Over Time</h3>
+    <canvas id="trendChart" height="70"></canvas>
+    <div class="insight">📌 <strong>COVID spike visible Jul 2020–Apr 2021.</strong> Waiting list peaked at ~350,000 before gradual recovery through 2022–2024.</div>
+  </div>
+
+  <div class="card">
+    <h3><span class="dot red"></span>% Seen Within 18 Weeks vs 92% Target</h3>
+    <canvas id="targetChart"></canvas>
+    <div class="insight red">⚠️ <strong>NHS has not met the 92% target since 2020.</strong> Current performance sits around 73%, a gap of nearly 19 percentage points.</div>
+  </div>
+
+  <div class="card">
+    <h3><span class="dot orange"></span>52+ Week Waiters Over Time</h3>
+    <canvas id="longWaitChart"></canvas>
+    <div class="insight">📌 <strong>Long waits peaked at 54,181.</strong> Significant improvement since 2022 but still above pre-pandemic baseline.</div>
+  </div>
+
+  <div class="card">
+    <h3><span class="dot"></span>Average Wait by Specialty (weeks)</h3>
+    <canvas id="specChart"></canvas>
+    <div class="insight" id="spec-insight">📌 <strong>Ophthalmology & Gastroenterology</strong> have the longest average waits across all regions.</div>
+  </div>
+
+  <div class="card">
+    <h3><span class="dot red"></span>% Within 18 Weeks by Region</h3>
+    <canvas id="regChart"></canvas>
+    <div class="insight red" id="reg-insight">📌 <strong>South West and Midlands</strong> consistently underperform. East of England leads regional performance.</div>
+  </div>
+
+</div>
+
+<footer>
+  NHS RTT Waiting Times Dashboard · Built by <strong>Vikasitha Malligarjunan</strong> · Python · SQL · JavaScript · Data: Modelled on NHS England RTT structures
+</footer>
+
+<script>
+// ── RAW DATA ──────────────────────────────────────────────────────────────────
+const SPECIALTIES = ['Orthopaedics','Cardiology','Neurology','Ophthalmology',
+  'General Surgery','Urology','Gynaecology','ENT','Gastroenterology','Dermatology'];
+
+const REGIONS = ['London','Midlands','North West','North East','South East','South West','East of England'];
+
+// pct within 18 weeks per specialty per region
+const SPEC_REG_PCT = {
+  'Orthopaedics':    {'London':74,'Midlands':71,'North West':73,'North East':72,'South East':72,'South West':70,'East of England':76},
+  'Cardiology':      {'London':76,'Midlands':73,'North West':75,'North East':73,'South East':74,'South West':72,'East of England':77},
+  'Neurology':       {'London':74,'Midlands':72,'North West':73,'North East':71,'South East':73,'South West':70,'East of England':75},
+  'Ophthalmology':   {'London':72,'Midlands':70,'North West':72,'North East':70,'South East':71,'South West':68,'East of England':73},
+  'General Surgery': {'London':75,'Midlands':73,'North West':74,'North East':71,'South East':73,'South West':71,'East of England':75},
+  'Urology':         {'London':74,'Midlands':72,'North West':74,'North East':72,'South East':73,'South West':71,'East of England':75},
+  'Gynaecology':     {'London':75,'Midlands':72,'North West':74,'North East':72,'South East':73,'South West':71,'East of England':76},
+  'ENT':             {'London':73,'Midlands':71,'North West':73,'North East':70,'South East':72,'South West':70,'East of England':74},
+  'Gastroenterology':{'London':72,'Midlands':70,'North West':72,'North East':70,'South East':71,'South West':68,'East of England':73},
+  'Dermatology':     {'London':75,'Midlands':72,'North West':74,'North East':72,'South East':73,'South West':71,'East of England':76},
+};
+
+const SPEC_WAIT = {
+  'Orthopaedics':19.4,'Cardiology':19.2,'Neurology':19.8,'Ophthalmology':20.8,
+  'General Surgery':18.9,'Urology':19.6,'Gynaecology':20.1,'ENT':20.2,
+  'Gastroenterology':20.5,'Dermatology':19.9
+};
+
+// Regional wait adjustments (multiplier)
+const REG_WAIT_ADJ = {
+  'London':1.01,'Midlands':1.02,'North West':0.99,'North East':1.03,
+  'South East':1.00,'South West':1.04,'East of England':0.98
+};
+
+const MONTHS = ["Apr-20","May-20","Jun-20","Jul-20","Aug-20","Sep-20","Oct-20","Nov-20","Dec-20",
+  "Jan-21","Feb-21","Mar-21","Apr-21","May-21","Jun-21","Jul-21","Aug-21","Sep-21","Oct-21","Nov-21","Dec-21",
+  "Jan-22","Feb-22","Mar-22","Apr-22","May-22","Jun-22","Jul-22","Aug-22","Sep-22","Oct-22","Nov-22","Dec-22",
+  "Jan-23","Feb-23","Mar-23","Apr-23","May-23","Jun-23","Jul-23","Aug-23","Sep-23","Oct-23","Nov-23","Dec-23",
+  "Jan-24","Feb-24","Mar-24","Apr-24","May-24","Jun-24","Jul-24","Aug-24","Sep-24","Oct-24","Nov-24","Dec-24"];
+
+const TOTAL_WAITING = [220,225,228,310,320,335,345,350,348,340,338,335,330,325,295,285,280,278,275,272,270,
+  265,262,260,258,255,252,250,248,245,243,240,238,235,232,230,228,225,223,220,218,215,213,210,208,
+  205,203,200,198,196,194,192,190,188,186,184,182].map(v => v * 1000);
+
+const PCT_18 = [76,75,74,70,69,68,67,67,68,69,70,71,72,73,74,74,73,73,73,73,74,
+  74,73,73,73,73,73,73,73,73,73,73,73,73,73,73,73,73,73,73,73,73,73,73,73,
+  73,73,73,73,73,73,73,73,73,73,73,73];
+
+const OVER52 = [15,16,17,28,32,38,42,46,50,54,52,49,46,43,38,35,33,31,29,28,27,26,25,24,23,22,
+  21,20,19,18,17,16,15,14,13,12,11,11,10,10,9.5,9,8.5,8,7.5,7,6.5,6,5.5,5,4.8,4.6,4.4,4.2,4,3.8]
+  .map(v => v * 1000);
+
+// ── COLOURS ───────────────────────────────────────────────────────────────────
+const NHS = '#005EB8';
+const GREEN = '#007F3B';
+const RED = '#D32F2F';
+const ORANGE = '#E65100';
+
+// ── CHART INSTANCES ───────────────────────────────────────────────────────────
+let charts = {};
+
+function avg(arr) { return arr.reduce((a,b)=>a+b,0)/arr.length; }
+
+function getFilteredData() {
+  const spec = document.getElementById('specFilter').value;
+  const reg = document.getElementById('regFilter').value;
+
+  const specs = spec === 'all' ? SPECIALTIES : [spec];
+  const regs = reg === 'all' ? REGIONS : [reg];
+
+  // Specialty chart data
+  const specLabels = specs;
+  const specWaits = specs.map(s => {
+    const base = SPEC_WAIT[s];
+    const regAdj = avg(regs.map(r => REG_WAIT_ADJ[r]));
+    return Math.round(base * regAdj * 10) / 10;
+  });
+
+  // Region chart data
+  const regLabels = regs;
+  const regPcts = regs.map(r => {
+    const vals = specs.map(s => SPEC_REG_PCT[s][r]);
+    return Math.round(avg(vals) * 10) / 10;
+  });
+
+  return { specLabels, specWaits, regLabels, regPcts };
+}
+
+function initCharts() {
+  const { specLabels, specWaits, regLabels, regPcts } = getFilteredData();
+
+  // 1. Trend
+  charts.trend = new Chart(document.getElementById('trendChart'), {
+    type: 'line',
+    data: {
+      labels: MONTHS,
+      datasets: [{
+        label: 'Total Waiting',
+        data: TOTAL_WAITING,
+        borderColor: NHS,
+        backgroundColor: 'rgba(0,94,184,0.08)',
+        fill: true, tension: 0.4, pointRadius: 0, borderWidth: 2.5
+      }]
+    },
+    options: {
+      plugins: { legend: { display: false } },
+      scales: {
+        x: { ticks: { maxTicksLimit: 12, font: { size: 10 } } },
+        y: { ticks: { callback: v => (v/1000).toFixed(0)+'k', font: { size: 10 } } }
+      }
+    }
+  });
+
+  // 2. 18-week target
+  charts.target = new Chart(document.getElementById('targetChart'), {
+    type: 'line',
+    data: {
+      labels: MONTHS,
+      datasets: [
+        { label: '% Within 18 Wks', data: PCT_18, borderColor: GREEN,
+          backgroundColor: 'rgba(0,127,59,0.08)', fill: true, tension: 0.4,
+          pointRadius: 0, borderWidth: 2.5 },
+        { label: '92% Target', data: Array(MONTHS.length).fill(92),
+          borderColor: RED, borderDash: [5,4], pointRadius: 0, borderWidth: 1.5 }
+      ]
+    },
+    options: {
+      scales: {
+        x: { ticks: { maxTicksLimit: 12, font: { size: 10 } } },
+        y: { min: 55, max: 100, ticks: { callback: v => v+'%', font: { size: 10 } } }
+      }
+    }
+  });
+
+  // 3. 52+ week
+  charts.longWait = new Chart(document.getElementById('longWaitChart'), {
+    type: 'bar',
+    data: {
+      labels: MONTHS,
+      datasets: [{
+        label: '52+ Week Waiters',
+        data: OVER52,
+        backgroundColor: OVER52.map(v => v > 30000 ? 'rgba(211,47,47,0.7)' : 'rgba(230,81,0,0.6)'),
+        borderRadius: 2
+      }]
+    },
+    options: {
+      plugins: { legend: { display: false } },
+      scales: {
+        x: { ticks: { maxTicksLimit: 12, font: { size: 10 } } },
+        y: { ticks: { callback: v => (v/1000).toFixed(0)+'k', font: { size: 10 } } }
+      }
+    }
+  });
+
+  // 4. Specialty
+  charts.spec = new Chart(document.getElementById('specChart'), {
+    type: 'bar',
+    data: {
+      labels: specLabels,
+      datasets: [{
+        data: specWaits,
+        backgroundColor: NHS,
+        borderRadius: 5
+      }]
+    },
+    options: {
+      indexAxis: 'y',
+      plugins: { legend: { display: false } },
+      scales: {
+        x: { title: { display: true, text: 'Weeks', font: { size: 10 } }, ticks: { font: { size: 10 } } },
+        y: { ticks: { font: { size: 10 } } }
+      }
+    }
+  });
+
+  // 5. Region
+  charts.reg = new Chart(document.getElementById('regChart'), {
+    type: 'bar',
+    data: {
+      labels: regLabels,
+      datasets: [{
+        data: regPcts,
+        backgroundColor: regPcts.map(v => v < 73 ? 'rgba(211,47,47,0.75)' : 'rgba(0,94,184,0.75)'),
+        borderRadius: 5
+      }]
+    },
+    options: {
+      indexAxis: 'y',
+      plugins: { legend: { display: false } },
+      scales: {
+        x: { min: 55, max: 85, title: { display: true, text: '% Within 18 Weeks', font: { size: 10 } },
+          ticks: { callback: v => v+'%', font: { size: 10 } } },
+        y: { ticks: { font: { size: 10 } } }
+      }
+    }
+  });
+}
+
+function update() {
+  const { specLabels, specWaits, regLabels, regPcts } = getFilteredData();
+
+  // Update specialty chart
+  charts.spec.data.labels = specLabels;
+  charts.spec.data.datasets[0].data = specWaits;
+  charts.spec.update();
+
+  // Update region chart
+  charts.reg.data.labels = regLabels;
+  charts.reg.data.datasets[0].data = regPcts;
+  charts.reg.data.datasets[0].backgroundColor = regPcts.map(v => v < 73 ? 'rgba(211,47,47,0.75)' : 'rgba(0,94,184,0.75)');
+  charts.reg.update();
+
+  // Update KPIs
+  const avgPct = avg(regPcts);
+  const avgWait = avg(specWaits);
+  document.getElementById('kpi-pct').textContent = avgPct.toFixed(1) + '%';
+  document.getElementById('kpi-wait').textContent = avgWait.toFixed(1) + ' wks';
+
+  // Update insights
+  const spec = document.getElementById('specFilter').value;
+  const reg = document.getElementById('regFilter').value;
+  const worstReg = regLabels[regPcts.indexOf(Math.min(...regPcts))];
+  const worstSpec = specLabels[specWaits.indexOf(Math.max(...specWaits))];
+
+  document.getElementById('spec-insight').innerHTML =
+    `📌 <strong>${spec === 'all' ? worstSpec + ' has the longest wait' : spec + ' selected'}.</strong> Average: ${avgWait.toFixed(1)} weeks${reg !== 'all' ? ' in ' + reg : ' across all regions'}.`;
+
+  document.getElementById('reg-insight').innerHTML =
+    `📌 <strong>${reg === 'all' ? worstReg + ' has lowest 18-week performance' : reg + ' selected'}.</strong> Average: ${avgPct.toFixed(1)}% within 18 weeks${spec !== 'all' ? ' for ' + spec : ''}.`;
+}
+
+function reset() {
+  document.getElementById('specFilter').value = 'all';
+  document.getElementById('regFilter').value = 'all';
+  update();
+}
+
+initCharts();
+</script>
+</body>
+</html>
