@@ -5,40 +5,28 @@ import matplotlib.ticker as mticker
 import seaborn as sns
 import warnings
 warnings.filterwarnings('ignore')
-
-# ── 1. LOAD DATA ──────────────────────────────────────────────────────────────
 df = pd.read_csv('data/nhs_waiting_times.csv', parse_dates=['month'])
 print(f"✅ Loaded {len(df):,} records")
-
-# ── 2. SUMMARY STATISTICS ─────────────────────────────────────────────────────
 print("\n📊 KEY METRICS:")
 print(f"  Total patient-months: {df['total_waiting'].sum():,.0f}")
 print(f"  Avg % within 18 weeks: {df['pct_within_18_weeks'].mean():.1f}%")
 print(f"  Avg median wait: {df['median_wait_weeks'].mean():.1f} weeks")
 print(f"  Peak 52+ week waiters: {df.groupby('month')['over_52_weeks'].sum().max():,.0f}")
-
-# ── 3. MONTHLY TREND ──────────────────────────────────────────────────────────
 monthly = df.groupby('month').agg(
     total_waiting=('total_waiting', 'sum'),
     over_52_weeks=('over_52_weeks', 'sum'),
     pct_within_18=('pct_within_18_weeks', 'mean')
 ).reset_index()
-
-# ── 4. BY SPECIALTY ───────────────────────────────────────────────────────────
 by_specialty = df.groupby('specialty').agg(
     avg_wait=('median_wait_weeks', 'mean'),
     avg_pct_18=('pct_within_18_weeks', 'mean'),
     total_over_52=('over_52_weeks', 'sum')
 ).reset_index().sort_values('avg_wait', ascending=False)
-
-# ── 5. BY REGION ──────────────────────────────────────────────────────────────
 by_region = df.groupby('region').agg(
     avg_wait=('median_wait_weeks', 'mean'),
     avg_pct_18=('pct_within_18_weeks', 'mean'),
     total_waiting=('total_waiting', 'sum')
 ).reset_index().sort_values('avg_pct_18', ascending=True)
-
-# ── 6. PLOT ───────────────────────────────────────────────────────────────────
 sns.set_theme(style='whitegrid', palette='Blues_d')
 fig, axes = plt.subplots(2, 2, figsize=(16, 12))
 fig.suptitle('NHS Referral to Treatment (RTT) Waiting Times Analysis\n2020–2024',
