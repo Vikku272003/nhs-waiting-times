@@ -195,6 +195,18 @@
 <!-- Charts -->
 <div class="charts-grid">
 
+  <div class="card">
+    <h3><span class="dot"></span>Average Wait by Specialty (weeks)</h3>
+    <canvas id="specChart"></canvas>
+    <div class="insight" id="spec-insight">📌 <strong>Ophthalmology & Gastroenterology</strong> have the longest average waits across all regions.</div>
+  </div>
+
+  <div class="card">
+    <h3><span class="dot red"></span>% Within 18 Weeks by Region</h3>
+    <canvas id="regChart"></canvas>
+    <div class="insight red" id="reg-insight">📌 <strong>South West and Midlands</strong> consistently underperform. East of England leads regional performance.</div>
+  </div>
+
   <div class="card full">
     <h3><span class="dot"></span>Total Patients Waiting Over Time</h3>
     <canvas id="trendChart" height="70"></canvas>
@@ -211,18 +223,6 @@
     <h3><span class="dot orange"></span>52+ Week Waiters Over Time</h3>
     <canvas id="longWaitChart"></canvas>
     <div class="insight">📌 <strong>Long waits peaked at 54,181.</strong> Significant improvement since 2022 but still above pre-pandemic baseline.</div>
-  </div>
-
-  <div class="card">
-    <h3><span class="dot"></span>Average Wait by Specialty (weeks)</h3>
-    <canvas id="specChart"></canvas>
-    <div class="insight" id="spec-insight">📌 <strong>Ophthalmology & Gastroenterology</strong> have the longest average waits across all regions.</div>
-  </div>
-
-  <div class="card">
-    <h3><span class="dot red"></span>% Within 18 Weeks by Region</h3>
-    <canvas id="regChart"></canvas>
-    <div class="insight red" id="reg-insight">📌 <strong>South West and Midlands</strong> consistently underperform. East of England leads regional performance.</div>
   </div>
 
 </div>
@@ -467,6 +467,7 @@ function reset() {
   document.getElementById('regFilter').value = 'all';
   update();
 }
+
 
 initCharts();
 </script>
