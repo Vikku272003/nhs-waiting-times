@@ -1,0 +1,42 @@
+# 🏥 NHS Referral to Treatment (RTT) Waiting Times Analysis
+
+## Overview
+End-to-end data analysis of NHS England waiting times across 10 specialties and 7 regions (2020–2024), examining the impact of COVID-19 on patient waiting lists and recovery progress.
+
+## Key Findings
+- 📉 Average % seen within 18 weeks dropped to **73.1%** — well below the NHS 92% target
+- 📈 Peak 52+ week waiters reached **54,181** during COVID recovery phase
+- 🏥 **Ophthalmology and Gastroenterology** had the longest average waits
+- 🗺️ **South West and Midlands** consistently underperformed on 18-week targets
+- ✅ Clear recovery trend visible from mid-2021 onward
+
+## Project Structure
+```
+nhs-waiting-times/
+├── data/
+│   ├── nhs_waiting_times.csv    # Generated dataset (3,990 records)
+│   └── nhs_analysis.png         # Output visualisation
+├── notebooks/
+│   └── analysis.py              # Full Python analysis
+├── sql/
+│   └── queries.sql              # SQL queries for deeper analysis
+└── README.md
+```
+
+## Tools & Skills Used
+- **Python** — Pandas, NumPy, Matplotlib, Seaborn
+- **SQL** — Aggregations, CASE statements, window analysis
+- **Data Analysis** — Trend analysis, cohort comparison, KPI tracking
+- **Visualisation** — Multi-panel dashboard, annotated charts
+
+## How to Run
+```bash
+pip install pandas numpy matplotlib seaborn
+python notebooks/analysis.py
+```
+
+## Visualisation
+![NHS Waiting Times Analysis](data/nhs_analysis.png)
+
+---
+*Dataset modelled on real NHS RTT data structures. Analysis by Vikasitha Malligarjunan.*
