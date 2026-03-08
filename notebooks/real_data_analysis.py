@@ -5,14 +5,14 @@ import seaborn as sns
 import warnings
 warnings.filterwarnings('ignore')
 
-# ── 1. LOAD REAL NHS DATA ─────────────────────────────────────────────────────
+#LOAD REAL NHS DATA 
 df_raw = pd.read_excel(
     'data/WLMDS-Summary-to-25-Jan-2026.xlsx',
     sheet_name='National-Time Series',
     skiprows=13
 )
 
-# ── 2. CLEAN & RENAME COLUMNS ─────────────────────────────────────────────────
+# CLEAN & RENAME COLUMNS
 df = df_raw[['Unnamed: 1', 'Total Waiting List', 'Up to 18 weeks', 'Over 52 and up to 65 weeks', '% within 18 weeks*', '% > 52 weeks*']].copy()
 df.columns = ['week', 'total_waiting', 'within_18_weeks', 'over_52_weeks', 'pct_within_18', 'pct_over_52']
 
@@ -41,7 +41,8 @@ print(f"   Peak 52+ week:        {df['over_52_weeks'].max():,.0f}")
 print(f"   Latest waiting list:  {df['total_waiting'].iloc[-1]:,.0f}")
 print(f"   Latest % within 18:   {df['pct_within_18'].iloc[-1]:.1f}%")
 
-# ── 3. PLOTS ──────────────────────────────────────────────────────────────────
+# 3. PLOTS 
+
 sns.set_theme(style='whitegrid')
 fig, axes = plt.subplots(2, 2, figsize=(16, 12))
 fig.suptitle('NHS RTT Waiting Times — REAL DATA (Sep 2021 – Jan 2026)',
